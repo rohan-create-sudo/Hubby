@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
+import ProtectedRoute from "./components/ProtectedRoute";
+
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 
@@ -23,13 +25,22 @@ function App() {
     <AppProvider>
       <BrowserRouter>
         <Routes>
+
+          {/* AUTH ROUTES */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/role" element={<RoleSelection />} />
           </Route>
-          
-          <Route element={<DashboardLayout />}>
+
+          {/* PROTECTED DASHBOARD ROUTES */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
@@ -39,9 +50,11 @@ function App() {
             <Route path="/settings" element={<Profile />} />
             <Route path="/invite" element={<ClientInvite />} />
           </Route>
-          
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+          {/* DEFAULT ROUTES */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+
         </Routes>
       </BrowserRouter>
     </AppProvider>
