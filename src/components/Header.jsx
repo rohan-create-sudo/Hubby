@@ -1,41 +1,35 @@
 import React from 'react';
 import { Search, Bell } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
-  const { user } = useAppContext();
+  const { userProfile } = useAuth();
+
+  const initials = userProfile?.name
+    ? userProfile.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+    : '?';
 
   return (
-    <header className="header justify-between">
-      <div className="flex items-center gap-4 w-full" style={{ maxWidth: '400px' }}>
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted" size={18} style={{ pointerEvents: 'none' }} />
-          <input 
-            type="text" 
-            placeholder="Search projects, tasks..." 
-            className="input pl-10 bg-white"
-            style={{ paddingLeft: '2.5rem', backgroundColor: 'var(--color-bg)' }}
-          />
-        </div>
+    <header className="header">
+      <div className="header-search">
+        <Search className="header-search-icon" />
+        <input type="text" placeholder="Search projects, tasks…" />
       </div>
 
-      <div className="flex items-center gap-6">
-        <button className="relative btn-icon">
-          <Bell size={20} />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border border-white"></span>
+      <div className="header-actions">
+        <button className="header-icon-btn">
+          <Bell size={18} strokeWidth={1.8} />
+          <span className="header-notif-dot" />
         </button>
-        
-        <div className="flex items-center gap-3 border-l pl-6">
-          <div className="flex flex-col text-right">
-            <span className="font-semibold text-sm">{user?.name}</span>
-            <span className="text-xs text-muted" style={{ textTransform: 'capitalize' }}>{user?.role}</span>
+
+        <div className="header-divider" />
+
+        <div className="header-profile">
+          <div className="header-avatar">{initials}</div>
+          <div>
+            <div className="header-user-name">{userProfile?.name || 'User'}</div>
+            <div className="header-user-role">{userProfile?.role || '—'}</div>
           </div>
-          <img 
-            src={user?.avatar} 
-            alt="Profile" 
-            className="w-10 h-10 rounded-full border shadow-sm"
-            style={{ width: '40px', height: '40px', objectFit: 'cover' }}
-          />
         </div>
       </div>
     </header>

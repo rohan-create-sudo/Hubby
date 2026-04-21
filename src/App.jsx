@@ -1,19 +1,23 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider } from './context/AppContext';
-import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import AuthLayout from './layouts/AuthLayout';
 
+// Auth
 import Login from './pages/Auth/Login';
 import Signup from './pages/Auth/Signup';
 import RoleSelection from './pages/Auth/RoleSelection';
 
+// Landing
+import Landing from './pages/Landing/Landing';
+
+// App Pages
 import Dashboard from './pages/Dashboard/Dashboard';
 import ProjectList from './pages/Projects/ProjectList';
 import ProjectDetail from './pages/Projects/ProjectDetail';
-
 import TaskManager from './pages/Tasks/TaskManager';
 import Chat from './pages/Chat/Chat';
 import Files from './pages/Files/Files';
@@ -22,18 +26,21 @@ import ClientInvite from './pages/Invite/ClientInvite';
 
 function App() {
   return (
-    <AppProvider>
+    <AuthProvider>
       <BrowserRouter>
         <Routes>
 
-          {/* AUTH ROUTES */}
+          {/* Public Landing */}
+          <Route path="/" element={<Landing />} />
+
+          {/* Auth Routes */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/role" element={<RoleSelection />} />
           </Route>
 
-          {/* PROTECTED DASHBOARD ROUTES */}
+          {/* Protected Dashboard Routes */}
           <Route
             element={
               <ProtectedRoute>
@@ -51,13 +58,12 @@ function App() {
             <Route path="/invite" element={<ClientInvite />} />
           </Route>
 
-          {/* DEFAULT ROUTES */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
 
         </Routes>
       </BrowserRouter>
-    </AppProvider>
+    </AuthProvider>
   );
 }
 

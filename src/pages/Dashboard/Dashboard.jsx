@@ -1,112 +1,142 @@
-import React from 'react';
-import { Briefcase, CheckCircle, Clock } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { collection, query, where, onSnapshot, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
+import { useAuth } from '../../context/AuthContext';
+import { FolderKanban, CheckSquare, CheckCircle2, Clock, Plus } from 'lucide-react';
+
+const statusClass = (s) => {
+  if (s === 'Completed') return 'badge-success';
+  if (s === 'In Progress') return 'badge-info';
+  if (s === 'Delayed') return 'badge-danger';
+  return 'badge-warning';
+};
 
 const Dashboard = () => {
-  const { user, projects, tasks } = useAppContext();
+  const { currentUser, userProfile } = useAuth();
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeProjects = projects.filter(p => p.status === 'In Progress').length;
-  const completedProjects = projects.filter(p => p.status === 'Completed').length;
-  const pendingTasks = tasks.filter(t => t.status === 'To Do' || t.status === 'Doing').length;
+  const field = userProfile?.role === 'client' ? 'clientId' : 'freelancerId';
 
-  const recentActivity = [
-    { id: 1, action: 'You completed a task', target: 'Design System creation', time: '2 hours ago' },
-    { id: 2, action: 'Client reviewed', target: 'Logo Concepts', time: '5 hours ago' },
-    { id: 3, action: 'New project added', target: 'E-commerce Website Redesign', time: '1 day ago' },
-  ];
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(
+      collection(db, 'projects'),
+      where(field, '==', currentUser.uid)
+    );
+    const unsub = onSnapshot(q, snap => {
+      setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setLoading(false);
+    });
+    return unsub;
+  }, [currentUser, field]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const q = query(collection(db, 'tasks'), where('assignedTo', '==', currentUser.uid));
+    const unsub = onSnapshot(q, snap => {
+      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [currentUser]);
+
+  const active    = projects.filter(p => p.status === 'In Progress').length;
+  const completed = projects.filter(p => p.status === 'Completed').length;
+  const pending   = tasks.filter(t => t.status !== 'Done').length;
+
+  if (loading) return <div className="spinner-wrap"><div className="spinner" /></div>;
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">Good morning, {user?.name.split(' ')[0]}</h1>
-          <p className="text-muted">Here's what's happening with your projects today.</p>
+      {/* Page Header */}
+      <div className="page-header">
+        <div className="page-header-row">
+          <div>
+            <h1 className="page-title">Good morning, {userProfile?.name?.split(' ')[0] || 'there'} 👋</h1>
+            <p className="page-subtitle">Here's an overview of your workspace today.</p>
+          </div>
+          {userProfile?.role === 'freelancer' && (
+            <Link to="/projects">
+              <button className="btn btn-primary"><Plus size={16} /> New Project</button>
+            </Link>
+          )}
         </div>
-        <Link to="/projects">
-          <button className="btn btn-primary">New Project</button>
-        </Link>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-6 mb-8" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-        <div className="card p-6 flex items-center gap-4">
-          <div className="p-4 rounded-full bg-primary-light text-primary">
-            <Briefcase size={24} />
-          </div>
+      {/* Stat Cards */}
+      <div className="grid-cols-3" style={{ marginBottom: 28 }}>
+        <div className="stat-card">
+          <div className="stat-icon blue"><FolderKanban /></div>
           <div>
-            <p className="text-muted text-sm font-medium">Active Projects</p>
-            <p className="text-2xl font-bold">{activeProjects}</p>
+            <div className="stat-label">Active Projects</div>
+            <div className="stat-value">{active}</div>
           </div>
         </div>
-        
-        <div className="card p-6 flex items-center gap-4">
-          <div className="p-4 rounded-full text-success" style={{ backgroundColor: 'var(--color-success-bg)' }}>
-            <CheckCircle size={24} />
-          </div>
+        <div className="stat-card">
+          <div className="stat-icon green"><CheckCircle2 /></div>
           <div>
-            <p className="text-muted text-sm font-medium">Completed Projects</p>
-            <p className="text-2xl font-bold">{completedProjects}</p>
+            <div className="stat-label">Completed</div>
+            <div className="stat-value">{completed}</div>
           </div>
         </div>
-        
-        <div className="card p-6 flex items-center gap-4">
-          <div className="p-4 rounded-full text-warning" style={{ backgroundColor: 'var(--color-warning-bg)' }}>
-            <Clock size={24} />
-          </div>
+        <div className="stat-card">
+          <div className="stat-icon amber"><Clock /></div>
           <div>
-            <p className="text-muted text-sm font-medium">Pending Tasks</p>
-            <p className="text-2xl font-bold">{pendingTasks}</p>
+            <div className="stat-label">Pending Tasks</div>
+            <div className="stat-value">{pending}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr' }}>
-        {/* Active Projects List */}
-        <div className="card">
-          <div className="p-6 border-b flex justify-between items-center">
-            <h2 className="font-bold">Active Projects</h2>
-            <Link to="/projects" className="text-primary text-sm font-medium hover:underline">View All</Link>
-          </div>
-          <div className="p-0">
-            {projects.filter(p => p.status === 'In Progress' || p.status === 'Pending').map(project => (
-              <div key={project.id} className="p-4 border-b last:border-0 hover:bg-gray-50 flex justify-between items-center transition-colors" style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <div>
-                  <h3 className="font-semibold">{project.title}</h3>
-                  <p className="text-sm text-muted">{project.clientName}</p>
-                </div>
-                <div className="text-right flex flex-col items-end">
-                  <span className={`badge mb-1 ${project.status === 'Pending' ? 'badge-warning' : 'badge-info'}`}>
-                    {project.status}
-                  </span>
-                  <span className="text-xs text-muted">Due {new Date(project.deadline).toLocaleDateString()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Projects List */}
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Your Projects</span>
+          <Link to="/projects" className="btn btn-secondary btn-sm">View All</Link>
         </div>
-
-        {/* Recent Activity */}
-        <div className="card">
-          <div className="p-6 border-b">
-            <h2 className="font-bold">Recent Activity</h2>
+        {projects.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon"><FolderKanban size={28} /></div>
+            <div className="empty-state-title">No projects yet</div>
+            <div className="empty-state-desc">
+              {userProfile?.role === 'freelancer'
+                ? 'Create your first project to get started.'
+                : 'Your freelancer hasn\'t added you to a project yet.'}
+            </div>
           </div>
-          <div className="p-6">
-            <ul className="relative flex flex-col gap-6 before:absolute before:inset-y-0 before:left-2 before:w-0.5 before:bg-gray-200" style={{ paddingLeft: '1.5rem' }}>
-              {recentActivity.map((activity, i) => (
-                <li key={activity.id} className="relative">
-                  <span className="absolute -left-6 top-1.5 w-2 h-2 rounded-full bg-primary border-2 border-white box-content"></span>
-                  <p className="text-sm">
-                    <span className="text-muted">{activity.action}</span>
-                    <br />
-                    <span className="font-medium">{activity.target}</span>
-                  </p>
-                  <span className="text-xs text-muted block mt-1">{activity.time}</span>
-                </li>
-              ))}
-            </ul>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Status</th>
+                  <th>Deadline</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.slice(0, 6).map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{p.title}</div>
+                      <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{p.description?.slice(0, 55)}{p.description?.length > 55 ? '…' : ''}</div>
+                    </td>
+                    <td><span className={`badge ${statusClass(p.status)}`}>{p.status}</span></td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: '.8125rem' }}>
+                      {p.deadline ? new Date(p.deadline).toLocaleDateString() : '—'}
+                    </td>
+                    <td>
+                      <Link to={`/projects/${p.id}`} className="btn btn-secondary btn-sm">Open</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

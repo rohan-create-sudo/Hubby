@@ -1,18 +1,23 @@
 import React from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const AuthLayout = () => {
-  const { user } = useAppContext();
+  const { currentUser, loading } = useAuth();
 
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
+  if (loading) {
+    return (
+      <div className="page-spinner">
+        <div className="spinner" />
+      </div>
+    );
   }
 
+  if (currentUser) return <Navigate to="/dashboard" replace />;
+
   return (
-    <div className="flex justify-center items-center h-full w-full bg-white" style={{ minHeight: '100vh' }}>
-      <div className="card p-6" style={{ width: '100%', maxWidth: '400px' }}>
-        <h1 className="text-primary font-bold text-center mb-6" style={{ fontSize: '1.5rem' }}>LANCE</h1>
+    <div className="auth-shell">
+      <div className="auth-panel">
         <Outlet />
       </div>
     </div>
